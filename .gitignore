@@ -1,0 +1,22 @@
+# Segredos: nunca vão para o GitHub
+.env
+
+# Ambiente virtual do Python (pode ser recriado com o requirements.txt)
+.venv/
+
+# Arquivos que o Python gera sozinho
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Trechos extraídos: são gerados pelo código a partir de data/raw/
+# (os PDFs de data/raw/ SÃO versionados, para o experimento ser reproduzível)
+data/processed/
+
+# Frontend (Etapa 7): dependências e build, que são recriáveis
+node_modules/
+frontend/dist/
+
+# Arquivos do sistema e do editor
+Thumbs.db
+.vscode/
