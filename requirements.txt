@@ -1,0 +1,11 @@
+# Dependências do projeto, com versões exatas (==) para o experimento ser reproduzível.
+# Instalar com o venv ativo:  pip install -r requirements.txt
+
+# SDK oficial para chamar a API do Claude
+anthropic==2.10.0
+
+# Driver do PostgreSQL (Supabase); [binary] traz o driver já compilado para Windows
+psycopg[binary]==3.3.9
+
+# Lê o arquivo .env e coloca as chaves em variáveis de ambiente
+python-dotenv==1.2.4
