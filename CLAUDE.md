@@ -21,8 +21,8 @@ mas nunca à custa do entendimento.
 - `src/recuperacao.py` e o prompt de `src/geracao.py` são escritos pelo bolsista:
   não os escreva sem pedido explícito; ajude explicando e revisando.
 - Não introduza bibliotecas ou tecnologias fora da stack abaixo sem perguntar.
-- Não faça commits, push nem alterações destrutivas (apagar dados, recriar o banco)
-  sem pedir.
+- Não faça alterações destrutivas (apagar dados, recriar o banco) sem pedir. Para Git,
+  valem as regras da seção "Regras de Git": você só orienta, o bolsista executa.
 - Não afirme que algo funciona sem ter executado e mostrado o resultado.
 - Ao final de cada etapa, sugira 3 a 4 linhas para o diário de desenvolvimento
   (`docs/diario.md`): o que foi feito, como funciona, o que deu errado.
@@ -115,52 +115,98 @@ PIBICT_RAG/              (raiz do repositório)
 
 Cada etapa só termina quando seu critério de pronto foi verificado e mostrado.
 
-## Regras de Git (o bolsista valida tudo antes)
+## Regras de Git (o bolsista executa tudo manualmente)
 
-- `main` é a versão validada e é o que o Vercel publica. Nunca trabalhe direto na `main`.
+**Você nunca executa comandos Git que alteram o repositório ou o GitHub.** O bolsista faz
+cada um deles à mão. Seu papel é orientar: dizer o que fazer, o comando exato, por que e
+o que conferir antes.
+
+- **Pode executar** (só leitura): `git status`, `git diff`, `git log`, `git branch`
+  (listar), `git remote -v`, `git show`.
+- **Não executa nunca, nem com aprovação**: `git add`, `git commit` (inclusive `--amend`),
+  `git checkout -b` / `git switch -c`, `git branch -d`, `git merge`, `git rebase`,
+  `git reset`, `git stash`, `git tag`, `git push`, `git pull`, nem qualquer ação no
+  GitHub (PR, configurações, deploy).
+- Quando for hora de um commit, um push ou um merge, **pare** e entregue ao bolsista:
+  1. o que será registrado (resumo do `git status` e do `git diff`);
+  2. os comandos exatos, em um bloco pronto para copiar;
+  3. o que conferir antes de rodar (ex.: `.env` fora da lista);
+  4. como verificar depois (ex.: `git log --oneline -3`).
+  Depois, espere o bolsista confirmar que executou antes de seguir.
+
+Convenções a orientar:
+- `main` é a versão validada e é o que o Vercel publica. Ninguém trabalha direto nela.
 - Cada etapa em uma branch própria: `etapa-N-descricao` (ex.: `etapa-1-ambiente`).
 - Commits pequenos, um assunto por commit, mensagem em português no padrão:
   `feat:` (funcionalidade), `fix:` (correção), `docs:` (documentação),
   `test:` (testes), `refactor:` (reorganização sem mudar comportamento), `chore:` (configuração).
   Ex.: `feat: extrai texto dos PDFs com número da página`.
-- **Antes de cada commit:** mostre `git status`, um resumo do `git diff`, a mensagem
-  proposta, e **espere o bolsista aprovar**.
-- **Antes de cada push:** liste os commits que vão subir e **espere aprovação**.
-- **Merge na `main` (que dispara o deploy no Vercel):** só depois de a etapa cumprir o
-  critério de pronto, com os testes mostrados, e com aprovação explícita do bolsista.
-- Nunca: commitar `.env`, chaves ou senhas; `git push --force`; reescrever histórico já
-  enviado; apagar branches; alterar configurações do repositório remoto.
-- Antes de commitar, confira se nenhum arquivo sensível ou grande (PDFs pesados,
-  modelos baixados, `node_modules/`, `.venv/`) entrou no `git status`.
+- Merge na `main` (que dispara o deploy no Vercel) só depois de a etapa cumprir o
+  critério de pronto, com os testes mostrados.
+- Nunca orientar: commitar `.env`, chaves ou senhas; `git push --force`; reescrever
+  histórico já enviado.
+- Antes de cada commit, alerte se algum arquivo sensível ou grande (PDFs pesados,
+  modelos baixados, `node_modules/`, `.venv/`) aparece no `git status`.
 
-## Resumo automático do desenvolvimento (obrigatório)
+## Relatório de desenvolvimento (obrigatório)
 
-Ao final de **toda resposta** em que algo foi desenvolvido ou executado, termine com o
-resumo abaixo, sem esperar pedido. O foco é o **sistema**: o que foi construído, o que
-funcionou, o que falhou e o que o bolsista precisa validar. O resumo é **acumulado**
-(cobre a sessão inteira até aquele momento), para que o bolsista copie só o mais recente.
-Respostas que só tiram dúvidas ou apresentam um plano ainda não executado não precisam
-de resumo. Seja curto: uma linha por item.
+Sempre que você **parar para esperar o bolsista** depois de ter desenvolvido ou executado
+algo (fim de um passo, um commit a orientar, um erro, uma decisão pendente), termine a
+resposta com o relatório abaixo, sem esperar pedido. O bolsista vai copiá-lo para o
+orientador técnico (outro chat), que acompanha o projeto e ajuda a tomar a próxima
+decisão. Por isso, o relatório precisa se sustentar sozinho: quem lê não viu a sessão.
+
+Regras do relatório:
+- **Acumulado:** cobre a sessão inteira até aquele momento; o bolsista copia só o mais recente.
+- **Só fatos verificados:** resultados vêm de comandos realmente executados, com a saída
+  relevante resumida. O que não foi executado aparece como "não testado".
+- **Nada sensível:** nunca inclua conteúdo do `.env`, chaves, senhas, connection strings
+  ou dados pessoais. Mascare se aparecerem em alguma saída.
+- **Decisões sempre com opções:** toda decisão pendente traz as opções, prós e contras
+  e a sua recomendação justificada.
+- Respostas que só tiram dúvidas ou apresentam um plano ainda não executado não precisam
+  de relatório.
+
+Use um único bloco de Markdown, pronto para copiar:
 
 ```
-## Resumo do desenvolvimento — [data] · Etapa [N] · branch [nome]
+# Relatório de desenvolvimento — [data] · Etapa [N]: [nome] · branch [nome]
 
-**Desenvolvido:**
-- [componente/arquivo] — [o que faz agora]
+## 1. Situação geral
+[1 a 2 frases: em que ponto da etapa estamos (ex.: passo 2 de 5) e se está no prazo]
 
-**Funcionou ✅**
-- [o quê] — evidência: [comando/teste → resultado real]
+## 2. O que foi feito
+- [passo] — [arquivos criados/alterados] — [o que passa a fazer]
 
-**Não funcionou / pendente ❌**
-- [o quê] — [erro ou motivo] — [situação: investigando / bloqueado / adiado]
+## 3. Resultados e evidências
+- ✅ [o que funcionou] — [comando/teste → resultado real]
+- ❌ [o que falhou] — [erro resumido]
+- ⏳ [o que ainda não foi testado]
 
-**Precisa da sua validação ⚠️**
-- [commit, push, merge, decisão técnica, teste manual ou configuração que depende do bolsista]
+## 4. Problemas e riscos
+- [problema] — causa provável: [...] — impacto: [...] — status: [resolvido / investigando / bloqueado]
+  (ou "nenhum")
 
-**Git:** [commits feitos (hash curto + mensagem) · push: sim/não · merge na main: sim/não]
+## 5. Decisões pendentes
+### [pergunta objetiva]
+- Opção A: [...] — prós: [...] — contras: [...]
+- Opção B: [...] — prós: [...] — contras: [...]
+- Recomendação: [opção] porque [...]
+(ou "nenhuma")
 
-**Próximo passo:** [1 linha]
+## 6. Ações do bolsista
+- [comandos Git a executar, configurações, testes manuais, contas a criar]
+  (com os comandos exatos em bloco, quando houver)
+
+## 7. Aderência ao escopo
+[o que saiu do CLAUDE.md: nova dependência, mudança de estrutura, desvio da stack ou
+das regras da arquitetura; ou "sem desvios"]
+
+## 8. Git
+[commits existentes na branch (hash curto + mensagem) · push: sim/não · merge na main: sim/não]
+
+## 9. Próximo passo proposto
+[1 a 2 linhas]
 ```
 
-Não invente resultados: o que não foi executado vai em "pendente" como "não testado".
 As linhas do diário de desenvolvimento são sugeridas à parte, só ao fim de cada etapa.
