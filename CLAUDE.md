@@ -46,8 +46,8 @@ Ambiente de desenvolvimento: Windows, sem GPU dedicada. O frontend exige Node.js
 
 ```
 PIBICT_RAG/              (raiz do repositório)
-├── data/raw/            PDFs originais (não versionar se forem grandes)
-├── data/processed/      trechos extraídos (JSON)
+├── data/raw/            PDFs oficiais (versionados) + FONTES.md (arquivo, link, data do download)
+├── data/processed/      trechos extraídos (JSON, gerados pelo código; não versionados)
 ├── src/
 │   ├── ingestao.py      PDF → trechos com documento, página e posição
 │   ├── indexacao.py     trechos → embeddings → pgvector
@@ -73,6 +73,10 @@ PIBICT_RAG/              (raiz do repositório)
 - Busca do MVP: apenas densa, top-5. Busca híbrida e reranking só após medição.
 - multilingual-E5 exige os prefixos `query: ` (pergunta) e `passage: ` (trechos).
 - O Cenário A (só LLM) e o Cenário B (RAG) usam o mesmo modelo e a mesma configuração.
+- Reprodutibilidade: os PDFs usados no experimento são versionados em `data/raw/` e
+  registrados em `data/raw/FONTES.md`. Avise antes de versionar qualquer arquivo
+  acima de 20 MB. Pastas geradas (como `data/processed/`) são criadas pelo código
+  quando não existirem.
 
 ## Segurança e LGPD
 
