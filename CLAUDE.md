@@ -146,7 +146,17 @@ Convenções a orientar:
   `test:` (testes), `refactor:` (reorganização sem mudar comportamento), `chore:` (configuração).
   Ex.: `feat: extrai texto dos PDFs com número da página`.
 - Merge na `main` (que dispara o deploy no Vercel) só depois de a etapa cumprir o
-  critério de pronto, com os testes mostrados.
+  critério de pronto, com os testes mostrados. O merge é feito por Pull Request no GitHub.
+- Título e descrição do PR curtos e diretos, sem perder o essencial. Modelo:
+  ```
+  Título: Etapa N: [resumo em poucas palavras]
+
+  [1 frase: o que entra na main]
+
+  **Teste** (`comando`): [resultado em uma linha]
+  **Pendência:** [o que falta e onde está registrado]   (omitir se não houver)
+  **Atenção:** [o que quem clonar ou revisar precisa saber, ex.: nova variável no .env]   (omitir se não houver)
+  ```
 - Nunca orientar: commitar `.env`, chaves ou senhas; `git push --force`; reescrever
   histórico já enviado.
 - Antes de cada commit, alerte se algum arquivo sensível ou grande (PDFs pesados,
