@@ -21,8 +21,8 @@ mas nunca à custa do entendimento.
 - `src/recuperacao.py` e o prompt de `src/geracao.py` são escritos pelo bolsista:
   não os escreva sem pedido explícito; ajude explicando e revisando.
 - Não introduza bibliotecas ou tecnologias fora da stack abaixo sem perguntar.
-- Não faça commits, push nem alterações destrutivas (apagar dados, recriar o banco)
-  sem pedir.
+- Não faça alterações destrutivas (apagar dados, recriar o banco) sem pedir. Para Git,
+  valem as regras da seção "Regras de Git": você só orienta, o bolsista executa.
 - Não afirme que algo funciona sem ter executado e mostrado o resultado.
 - Ao final de cada etapa, sugira 3 a 4 linhas para o diário de desenvolvimento
   (`docs/diario.md`): o que foi feito, como funciona, o que deu errado.
@@ -46,8 +46,8 @@ Ambiente de desenvolvimento: Windows, sem GPU dedicada. O frontend exige Node.js
 
 ```
 PIBICT_RAG/              (raiz do repositório)
-├── data/raw/            PDFs originais (não versionar se forem grandes)
-├── data/processed/      trechos extraídos (JSON)
+├── data/raw/            PDFs oficiais (versionados) + FONTES.md (arquivo, link, data do download)
+├── data/processed/      trechos extraídos (JSON, gerados pelo código; não versionados)
 ├── src/
 │   ├── ingestao.py      PDF → trechos com documento, página e posição
 │   ├── indexacao.py     trechos → embeddings → pgvector
@@ -73,6 +73,10 @@ PIBICT_RAG/              (raiz do repositório)
 - Busca do MVP: apenas densa, top-5. Busca híbrida e reranking só após medição.
 - multilingual-E5 exige os prefixos `query: ` (pergunta) e `passage: ` (trechos).
 - O Cenário A (só LLM) e o Cenário B (RAG) usam o mesmo modelo e a mesma configuração.
+- Reprodutibilidade: os PDFs usados no experimento são versionados em `data/raw/` e
+  registrados em `data/raw/FONTES.md`. Avise antes de versionar qualquer arquivo
+  acima de 20 MB. Pastas geradas (como `data/processed/`) são criadas pelo código
+  quando não existirem.
 
 ## Segurança e LGPD
 
@@ -115,52 +119,62 @@ PIBICT_RAG/              (raiz do repositório)
 
 Cada etapa só termina quando seu critério de pronto foi verificado e mostrado.
 
-## Regras de Git (o bolsista valida tudo antes)
+## Regras de Git (o bolsista executa tudo manualmente)
 
-- `main` é a versão validada e é o que o Vercel publica. Nunca trabalhe direto na `main`.
+**Você nunca executa comandos Git que alteram o repositório ou o GitHub.** O bolsista faz
+cada um deles à mão. Seu papel é orientar: dizer o que fazer, o comando exato, por que e
+o que conferir antes.
+
+- **Pode executar** (só leitura): `git status`, `git diff`, `git log`, `git branch`
+  (listar), `git remote -v`, `git show`.
+- **Não executa nunca, nem com aprovação**: `git add`, `git commit` (inclusive `--amend`),
+  `git checkout -b` / `git switch -c`, `git branch -d`, `git merge`, `git rebase`,
+  `git reset`, `git stash`, `git tag`, `git push`, `git pull`, nem qualquer ação no
+  GitHub (PR, configurações, deploy).
+- Quando for hora de um commit, um push ou um merge, **pare** e entregue ao bolsista:
+  1. o que será registrado (resumo do `git status` e do `git diff`);
+  2. os comandos exatos, em um bloco pronto para copiar;
+  3. o que conferir antes de rodar (ex.: `.env` fora da lista);
+  4. como verificar depois (ex.: `git log --oneline -3`).
+  Depois, espere o bolsista confirmar que executou antes de seguir.
+
+Convenções a orientar:
+- `main` é a versão validada e é o que o Vercel publica. Ninguém trabalha direto nela.
 - Cada etapa em uma branch própria: `etapa-N-descricao` (ex.: `etapa-1-ambiente`).
 - Commits pequenos, um assunto por commit, mensagem em português no padrão:
   `feat:` (funcionalidade), `fix:` (correção), `docs:` (documentação),
   `test:` (testes), `refactor:` (reorganização sem mudar comportamento), `chore:` (configuração).
   Ex.: `feat: extrai texto dos PDFs com número da página`.
-- **Antes de cada commit:** mostre `git status`, um resumo do `git diff`, a mensagem
-  proposta, e **espere o bolsista aprovar**.
-- **Antes de cada push:** liste os commits que vão subir e **espere aprovação**.
-- **Merge na `main` (que dispara o deploy no Vercel):** só depois de a etapa cumprir o
-  critério de pronto, com os testes mostrados, e com aprovação explícita do bolsista.
-- Nunca: commitar `.env`, chaves ou senhas; `git push --force`; reescrever histórico já
-  enviado; apagar branches; alterar configurações do repositório remoto.
-- Antes de commitar, confira se nenhum arquivo sensível ou grande (PDFs pesados,
-  modelos baixados, `node_modules/`, `.venv/`) entrou no `git status`.
+- Merge na `main` (que dispara o deploy no Vercel) só depois de a etapa cumprir o
+  critério de pronto, com os testes mostrados.
+- Nunca orientar: commitar `.env`, chaves ou senhas; `git push --force`; reescrever
+  histórico já enviado.
+- Antes de cada commit, alerte se algum arquivo sensível ou grande (PDFs pesados,
+  modelos baixados, `node_modules/`, `.venv/`) aparece no `git status`.
 
-## Resumo automático do desenvolvimento (obrigatório)
+## Relatório de desenvolvimento (obrigatório)
 
-Ao final de **toda resposta** em que algo foi desenvolvido ou executado, termine com o
-resumo abaixo, sem esperar pedido. O foco é o **sistema**: o que foi construído, o que
-funcionou, o que falhou e o que o bolsista precisa validar. O resumo é **acumulado**
-(cobre a sessão inteira até aquele momento), para que o bolsista copie só o mais recente.
-Respostas que só tiram dúvidas ou apresentam um plano ainda não executado não precisam
-de resumo. Seja curto: uma linha por item.
+Ao parar para esperar o bolsista depois de fazer algo, termine com o relatório abaixo.
+Ele é copiado para o orientador técnico (outro chat), que acompanha o projeto.
+
+Regras:
+- No máximo ~15 linhas. Frases curtas. Sem repetir o que já foi relatado antes:
+  só o que mudou desde o último relatório.
+- Omita as linhas que não se aplicam (ex.: sem decisão, sem a linha "Decidir").
+- Só fatos verificados. Nada do .env, chaves, senhas ou connection strings.
 
 ```
-## Resumo do desenvolvimento — [data] · Etapa [N] · branch [nome]
-
-**Desenvolvido:**
-- [componente/arquivo] — [o que faz agora]
-
-**Funcionou ✅**
-- [o quê] — evidência: [comando/teste → resultado real]
-
-**Não funcionou / pendente ❌**
-- [o quê] — [erro ou motivo] — [situação: investigando / bloqueado / adiado]
-
-**Precisa da sua validação ⚠️**
-- [commit, push, merge, decisão técnica, teste manual ou configuração que depende do bolsista]
-
-**Git:** [commits feitos (hash curto + mensagem) · push: sim/não · merge na main: sim/não]
-
-**Próximo passo:** [1 linha]
+# Relatório — [data] · Etapa [N], passo [X/Y]
+**Status:** [1 frase: onde estamos]
+**Feito:** [o que mudou, 1 a 3 itens curtos]
+**Testes:** ✅ [ok] · ❌ [falhou: erro em poucas palavras] · ⏳ [não testado]
+**Decidir:** [pergunta] → recomendo [opção], porque [1 frase]. Alternativa: [1 frase]
+**Você faz:** [comandos em bloco, se houver]
+**Fora do escopo:** [desvio do CLAUDE.md, se houver]
+**Git:** último commit [hash + mensagem] · push: sim/não
 ```
 
-Não invente resultados: o que não foi executado vai em "pendente" como "não testado".
+Explicações durante a sessão também devem ser curtas (até ~5 linhas) e em linguagem
+simples. Dê mais detalhes só quando o bolsista pedir.
+
 As linhas do diário de desenvolvimento são sugeridas à parte, só ao fim de cada etapa.
