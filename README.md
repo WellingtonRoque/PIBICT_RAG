@@ -11,7 +11,7 @@ ao Vestibular usando apenas documentos oficiais, sempre indicando a fonte (docum
 
 | Etapa | Situação |
 |---|---|
-| 1. Ambiente | Concluída (teste real do Claude pendente, aguardando a chave da API) |
+| 1. Ambiente | Concluída (teste real da chave pendente, aguardando a chave da API) |
 | 2. Ingestão e chunking | Próxima |
 | 3 a 8 | A fazer |
 
