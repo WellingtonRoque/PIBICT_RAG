@@ -154,63 +154,27 @@ Convenções a orientar:
 
 ## Relatório de desenvolvimento (obrigatório)
 
-Sempre que você **parar para esperar o bolsista** depois de ter desenvolvido ou executado
-algo (fim de um passo, um commit a orientar, um erro, uma decisão pendente), termine a
-resposta com o relatório abaixo, sem esperar pedido. O bolsista vai copiá-lo para o
-orientador técnico (outro chat), que acompanha o projeto e ajuda a tomar a próxima
-decisão. Por isso, o relatório precisa se sustentar sozinho: quem lê não viu a sessão.
+Ao parar para esperar o bolsista depois de fazer algo, termine com o relatório abaixo.
+Ele é copiado para o orientador técnico (outro chat), que acompanha o projeto.
 
-Regras do relatório:
-- **Acumulado:** cobre a sessão inteira até aquele momento; o bolsista copia só o mais recente.
-- **Só fatos verificados:** resultados vêm de comandos realmente executados, com a saída
-  relevante resumida. O que não foi executado aparece como "não testado".
-- **Nada sensível:** nunca inclua conteúdo do `.env`, chaves, senhas, connection strings
-  ou dados pessoais. Mascare se aparecerem em alguma saída.
-- **Decisões sempre com opções:** toda decisão pendente traz as opções, prós e contras
-  e a sua recomendação justificada.
-- Respostas que só tiram dúvidas ou apresentam um plano ainda não executado não precisam
-  de relatório.
-
-Use um único bloco de Markdown, pronto para copiar:
+Regras:
+- No máximo ~15 linhas. Frases curtas. Sem repetir o que já foi relatado antes:
+  só o que mudou desde o último relatório.
+- Omita as linhas que não se aplicam (ex.: sem decisão, sem a linha "Decidir").
+- Só fatos verificados. Nada do .env, chaves, senhas ou connection strings.
 
 ```
-# Relatório de desenvolvimento — [data] · Etapa [N]: [nome] · branch [nome]
-
-## 1. Situação geral
-[1 a 2 frases: em que ponto da etapa estamos (ex.: passo 2 de 5) e se está no prazo]
-
-## 2. O que foi feito
-- [passo] — [arquivos criados/alterados] — [o que passa a fazer]
-
-## 3. Resultados e evidências
-- ✅ [o que funcionou] — [comando/teste → resultado real]
-- ❌ [o que falhou] — [erro resumido]
-- ⏳ [o que ainda não foi testado]
-
-## 4. Problemas e riscos
-- [problema] — causa provável: [...] — impacto: [...] — status: [resolvido / investigando / bloqueado]
-  (ou "nenhum")
-
-## 5. Decisões pendentes
-### [pergunta objetiva]
-- Opção A: [...] — prós: [...] — contras: [...]
-- Opção B: [...] — prós: [...] — contras: [...]
-- Recomendação: [opção] porque [...]
-(ou "nenhuma")
-
-## 6. Ações do bolsista
-- [comandos Git a executar, configurações, testes manuais, contas a criar]
-  (com os comandos exatos em bloco, quando houver)
-
-## 7. Aderência ao escopo
-[o que saiu do CLAUDE.md: nova dependência, mudança de estrutura, desvio da stack ou
-das regras da arquitetura; ou "sem desvios"]
-
-## 8. Git
-[commits existentes na branch (hash curto + mensagem) · push: sim/não · merge na main: sim/não]
-
-## 9. Próximo passo proposto
-[1 a 2 linhas]
+# Relatório — [data] · Etapa [N], passo [X/Y]
+**Status:** [1 frase: onde estamos]
+**Feito:** [o que mudou, 1 a 3 itens curtos]
+**Testes:** ✅ [ok] · ❌ [falhou: erro em poucas palavras] · ⏳ [não testado]
+**Decidir:** [pergunta] → recomendo [opção], porque [1 frase]. Alternativa: [1 frase]
+**Você faz:** [comandos em bloco, se houver]
+**Fora do escopo:** [desvio do CLAUDE.md, se houver]
+**Git:** último commit [hash + mensagem] · push: sim/não
 ```
+
+Explicações durante a sessão também devem ser curtas (até ~5 linhas) e em linguagem
+simples. Dê mais detalhes só quando o bolsista pedir.
 
 As linhas do diário de desenvolvimento são sugeridas à parte, só ao fim de cada etapa.
