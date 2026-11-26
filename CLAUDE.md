@@ -61,8 +61,9 @@ Ambiente de desenvolvimento: Windows, sem GPU dedicada. O frontend exige Node.js
 
 ```
 PIBICT_RAG/              (raiz do repositório)
-├── data/raw/            PDFs oficiais (versionados) + FONTES.md (arquivo, link, data do download)
-├── data/processed/      trechos extraídos (JSON, gerados pelo código; não versionados)
+├── data/raw/<colecao>/  PDFs oficiais (versionados) + manifesto.yaml (arquivo, titulo,
+│                        fonte_url, baixado_em, metadados), uma pasta por coleção
+├── data/processed/<colecao>/trechos.json   trechos extraídos (gerados pelo código; não versionados)
 ├── assistentes/         um YAML por assistente (<slug>.yaml), ex.: vestibular-fatec-indaiatuba.yaml
 ├── sql/esquema.sql      tabelas, índices e políticas de RLS
 ├── src/
@@ -92,7 +93,8 @@ PIBICT_RAG/              (raiz do repositório)
 - Busca do MVP: top-5, híbrida (densa no pgvector + full-text search do Postgres,
   combinadas por RRF — Reciprocal Rank Fusion), implementada na Etapa 4 e medida
   com e sem a parte full-text. Reranking só após medição.
-- Toda busca é filtrada por `cliente_id` e `colecao_id`, com varredura iterativa do
+- Toda busca é filtrada por `cliente_id` e pelas coleções do assistente
+  (`colecao_id` em `assistente_colecoes`), com varredura iterativa do
   índice HNSW ligada (`hnsw.iterative_scan`, pgvector ≥ 0.8), para o filtro não
   deixar o resultado com menos de 5 trechos.
 - Embeddings só por `gerar_embeddings()` (em `src/embeddings.py`). O modelo usado fica
@@ -101,8 +103,10 @@ PIBICT_RAG/              (raiz do repositório)
 - multilingual-E5 exige os prefixos `query: ` (pergunta) e `passage: ` (trechos);
   esses prefixos ficam dentro de `gerar_embeddings()`.
 - O Cenário A (só LLM) e o Cenário B (RAG) usam o mesmo modelo e a mesma configuração.
-- Reprodutibilidade: os PDFs usados no experimento são versionados em `data/raw/` e
-  registrados em `data/raw/FONTES.md`. Avise antes de versionar qualquer arquivo
+- Reprodutibilidade: os PDFs usados no experimento são versionados em
+  `data/raw/<colecao>/` e registrados no `manifesto.yaml` da coleção (que substitui o
+  antigo `FONTES.md`). A ingestão falha se faltar um PDF do manifesto ou se houver
+  PDF na pasta fora dele. Avise antes de versionar qualquer arquivo
   acima de 20 MB. Pastas geradas (como `data/processed/`) são criadas pelo código
   quando não existirem.
 
@@ -114,7 +118,8 @@ colecoes     (id, cliente_id, nome, modelo_embedding)
 documentos   (id, colecao_id, titulo, arquivo, fonte_url, baixado_em, metadados JSONB)
 trechos      (id, documento_id, cliente_id, colecao_id, pagina, posicao, texto,
               metadados JSONB, embedding vector, texto_busca tsvector)
-assistentes  (id, cliente_id, colecao_id, slug, config JSONB)
+assistentes  (id, cliente_id, slug, config JSONB)
+assistente_colecoes (assistente_id, colecao_id, cliente_id)
 sessoes      (id, assistente_id, criada_em)
 interacoes   (id, sessao_id, cliente_id, pergunta (mascarada), resposta, fontes, tempos,
               tokens_entrada, tokens_saida, custo_estimado, util, categoria)
@@ -122,6 +127,11 @@ ingestoes    (id, colecao_id, cliente_id, inicio, fim, documentos, trechos, temp
               custo_estimado)
 ```
 
+- Um assistente pode usar várias coleções (ex.: `vestibular-2027-1`, que muda a cada
+  edição, e `fatec-indaiatuba-institucional`, estável), ligadas por
+  `assistente_colecoes`. O banco só aceita ligar coleções do mesmo cliente: a tabela
+  guarda `cliente_id` e tem chaves estrangeiras compostas `(assistente_id, cliente_id)`
+  → `assistentes(id, cliente_id)` e `(colecao_id, cliente_id)` → `colecoes(id, cliente_id)`.
 - `trechos` repete `cliente_id` e `colecao_id` (em vez de só herdar do documento) para
   a busca filtrar sem JOIN.
 - `texto_busca` é gerado a partir de `texto` com `to_tsvector('portuguese', ...)`, com
@@ -146,7 +156,7 @@ Campos:
 - `sem_resposta`: mensagem quando os documentos não respondem, com o contato do cliente
 - `regras_prompt`: regras específicas do cliente, somadas às regras fixas do prompt
   (responder só com os trechos, citar a fonte, dizer quando não encontrou)
-- `colecao`: coleção de documentos consultada
+- `colecoes`: lista das coleções consultadas (gravada em `assistente_colecoes`)
 
 ## Custos
 
@@ -161,7 +171,8 @@ token ficam em um único lugar do código, com a data em que foram conferidos.
 - Logs sem nome, e-mail, CPF ou telefone: mascarar esses padrões na pergunta antes
   de salvar. Sessão identificada só por ID anônimo (tabela `sessoes`).
 - **Teste de isolamento (obrigatório):** perguntas feitas como cliente A nunca devolvem
-  trechos do cliente B. Fica em `tests/` com dois clientes de teste e roda antes de
+  trechos do cliente B, e o banco recusa ligar a um assistente do cliente A uma coleção
+  do cliente B. Fica em `tests/` com dois clientes de teste e roda antes de
   todo merge que mexa em banco, busca ou API.
 
 ## Campos de log (a validar com o projeto da Jasmine)
