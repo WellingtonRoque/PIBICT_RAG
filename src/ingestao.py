@@ -16,7 +16,9 @@ Uso:
 import argparse
 import datetime
 import json
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pymupdf
@@ -99,6 +101,45 @@ def extrair_paginas(caminho_pdf):
     return paginas
 
 
+def _normalizar_linha(linha):
+    """Prepara uma linha para comparação: troca números por '#' e junta espaços.
+
+    Assim "Manual do Candidato Pág. 5" e "... Pág. 6" viram a mesma linha
+    ("Manual do Candidato Pág. #"), e o cabeçalho é reconhecido como repetido.
+    """
+    linha = re.sub(r"\d+", "#", linha)
+    return " ".join(linha.split())
+
+
+def remover_linhas_repetidas(paginas):
+    """Remove cabeçalhos e rodapés: linhas que aparecem em mais da metade das páginas.
+
+    A comparação ignora números (ver _normalizar_linha). A linha também precisa
+    aparecer em pelo menos 2 páginas; sem isso, num documento de 1 página toda
+    linha estaria "em mais da metade" e o texto inteiro seria apagado.
+
+    Devolve (paginas_limpas, linhas_removidas), com as linhas removidas já normalizadas.
+    """
+    # Conta em quantas páginas cada linha aparece (set: conta 1 vez por página).
+    contagem = Counter()
+    for _, texto in paginas:
+        linhas_da_pagina = {_normalizar_linha(l) for l in texto.splitlines()}
+        # Só contam linhas com alguma letra ou número ('#' é número já normalizado).
+        # Linhas só de símbolos, como o marcador de lista "•", não são cabeçalho e
+        # também não podem ser removidas por aparecerem em muitas páginas.
+        linhas_da_pagina = {l for l in linhas_da_pagina if re.search(r"[\w#]", l)}
+        contagem.update(linhas_da_pagina)
+
+    metade = len(paginas) / 2
+    repetidas = {linha for linha, n in contagem.items() if n > metade and n >= 2}
+
+    paginas_limpas = []
+    for numero, texto in paginas:
+        mantidas = [l for l in texto.splitlines() if _normalizar_linha(l) not in repetidas]
+        paginas_limpas.append((numero, "\n".join(mantidas)))
+    return paginas_limpas, sorted(repetidas)
+
+
 def dividir_em_trechos(paginas, tamanho=TAMANHO_TRECHO, sobreposicao=SOBREPOSICAO):
     """Divide o texto das páginas em trechos de `tamanho` palavras com sobreposição.
 
@@ -154,8 +195,10 @@ def processar_colecao(colecao, pasta_raw=PASTA_RAW, pasta_saida=PASTA_PROCESSADA
     resumo = []
     for doc in documentos:
         paginas = extrair_paginas(pasta_colecao / doc["arquivo"])
+        # Páginas sem texto são verificadas antes da limpeza, no texto original do PDF.
         sem_texto = [n for n, texto in paginas if len(texto.strip()) < MIN_CARACTERES_PAGINA]
 
+        paginas, linhas_removidas = remover_linhas_repetidas(paginas)
         trechos = dividir_em_trechos(paginas)
         for trecho in trechos:
             # Cada trecho carrega os dados do documento, para a fonte poder ser citada.
@@ -171,6 +214,7 @@ def processar_colecao(colecao, pasta_raw=PASTA_RAW, pasta_saida=PASTA_PROCESSADA
             "paginas": len(paginas),
             "trechos": len(trechos),
             "paginas_sem_texto": sem_texto,
+            "linhas_removidas": linhas_removidas,
         })
 
     pasta_destino = Path(pasta_saida) / colecao
@@ -191,6 +235,12 @@ def imprimir_resumo(colecao, resumo):
     total_paginas = sum(item["paginas"] for item in resumo)
     total_trechos = sum(item["trechos"] for item in resumo)
     print(f"{'TOTAL: ' + str(len(resumo)) + ' documentos':<48}{total_paginas:>8}{total_trechos:>9}")
+
+    for item in resumo:
+        if item["linhas_removidas"]:
+            print(f"Cabeçalhos/rodapés removidos de {item['documento']}:")
+            for linha in item["linhas_removidas"]:
+                print(f"    {linha!r}")
 
     for item in resumo:
         if item["paginas_sem_texto"]:
