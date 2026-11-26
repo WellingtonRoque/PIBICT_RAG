@@ -3,8 +3,7 @@
 Fluxo:
     1. lê o manifesto.yaml da coleção e confere se ele bate com os PDFs da pasta;
     2. extrai o texto de cada página com PyMuPDF;
-    3. divide o texto em trechos de tamanho fixo (~400 palavras, 15% de sobreposição),
-       guardando a página onde cada trecho começa e termina;
+    3. divide o texto em trechos de tamanho fixo (~400 palavras, 15% de sobreposição), guardando a página onde cada trecho começa e termina;
     4. salva tudo em data/processed/<colecao>/trechos.json.
 
 Ainda não usa banco nem embeddings (isso é da Etapa 4).
@@ -27,12 +26,12 @@ import yaml
 PASTA_RAW = Path("data/raw")
 PASTA_PROCESSADA = Path("data/processed")
 
-TAMANHO_TRECHO = 400  # palavras por trecho
-SOBREPOSICAO = 0.15  # fração do trecho repetida no início do próximo
-MIN_CARACTERES_PAGINA = 20  # abaixo disso, a página é considerada "sem texto"
+TAMANHO_TRECHO = 400
+SOBREPOSICAO = 0.15 
+MIN_CARACTERES_PAGINA = 20
 
 
-class ErroManifesto(Exception):
+class ErroManifesto(Exception): 
     """O manifesto não bate com os PDFs da pasta (ou está mal preenchido)."""
 
 
@@ -78,7 +77,6 @@ def carregar_manifesto(pasta_colecao):
     listados = {doc["arquivo"] for doc in documentos}
     na_pasta = {pdf.name for pdf in pasta_colecao.glob("*.pdf")}
 
-    # As duas diferenças de conjuntos mostram exatamente o que está sobrando de cada lado.
     faltando = sorted(listados - na_pasta)
     fora_do_manifesto = sorted(na_pasta - listados)
     erros = []
@@ -120,13 +118,10 @@ def remover_linhas_repetidas(paginas):
 
     Devolve (paginas_limpas, linhas_removidas), com as linhas removidas já normalizadas.
     """
-    # Conta em quantas páginas cada linha aparece (set: conta 1 vez por página).
+
     contagem = Counter()
     for _, texto in paginas:
         linhas_da_pagina = {_normalizar_linha(l) for l in texto.splitlines()}
-        # Só contam linhas com alguma letra ou número ('#' é número já normalizado).
-        # Linhas só de símbolos, como o marcador de lista "•", não são cabeçalho e
-        # também não podem ser removidas por aparecerem em muitas páginas.
         linhas_da_pagina = {l for l in linhas_da_pagina if re.search(r"[\w#]", l)}
         contagem.update(linhas_da_pagina)
 
@@ -152,10 +147,8 @@ def dividir_em_trechos(paginas, tamanho=TAMANHO_TRECHO, sobreposicao=SOBREPOSICA
 
     Devolve uma lista de dicionários com pagina, pagina_fim, posicao e texto.
     """
-    palavras = []  # pares (palavra, página de origem)
+    palavras = []
     for numero, texto in paginas:
-        # split() sem argumento separa por qualquer espaço/quebra de linha e
-        # descarta espaços repetidos, o que limpa o texto extraído do PDF.
         for palavra in texto.split():
             palavras.append((palavra, numero))
 
@@ -170,12 +163,11 @@ def dividir_em_trechos(paginas, tamanho=TAMANHO_TRECHO, sobreposicao=SOBREPOSICA
     while True:
         janela = palavras[inicio:inicio + tamanho]
         trechos.append({
-            "pagina": janela[0][1],  # página da primeira palavra
-            "pagina_fim": janela[-1][1],  # página da última palavra
-            "posicao": len(trechos),  # ordem do trecho dentro do documento (0, 1, 2...)
+            "pagina": janela[0][1],
+            "pagina_fim": janela[-1][1],
+            "posicao": len(trechos),
             "texto": " ".join(palavra for palavra, _ in janela),
         })
-        # Se a janela já alcançou o fim do documento, não há mais o que dividir.
         if inicio + tamanho >= len(palavras):
             break
         inicio += passo
@@ -195,13 +187,11 @@ def processar_colecao(colecao, pasta_raw=PASTA_RAW, pasta_saida=PASTA_PROCESSADA
     resumo = []
     for doc in documentos:
         paginas = extrair_paginas(pasta_colecao / doc["arquivo"])
-        # Páginas sem texto são verificadas antes da limpeza, no texto original do PDF.
         sem_texto = [n for n, texto in paginas if len(texto.strip()) < MIN_CARACTERES_PAGINA]
 
         paginas, linhas_removidas = remover_linhas_repetidas(paginas)
         trechos = dividir_em_trechos(paginas)
         for trecho in trechos:
-            # Cada trecho carrega os dados do documento, para a fonte poder ser citada.
             todos_trechos.append({
                 "documento": doc["arquivo"],
                 "titulo": doc["titulo"],
@@ -218,9 +208,8 @@ def processar_colecao(colecao, pasta_raw=PASTA_RAW, pasta_saida=PASTA_PROCESSADA
         })
 
     pasta_destino = Path(pasta_saida) / colecao
-    pasta_destino.mkdir(parents=True, exist_ok=True)  # cria a pasta se não existir
+    pasta_destino.mkdir(parents=True, exist_ok=True)
     with open(pasta_destino / "trechos.json", "w", encoding="utf-8") as arquivo:
-        # ensure_ascii=False mantém os acentos legíveis no arquivo.
         json.dump(todos_trechos, arquivo, ensure_ascii=False, indent=2)
 
     return resumo
@@ -254,7 +243,6 @@ def main():
     parser.add_argument("colecao", help="nome da pasta em data/raw/ (ex.: vestibular-2027-1)")
     args = parser.parse_args()
 
-    # Garante acentos corretos no terminal do Windows.
     sys.stdout.reconfigure(encoding="utf-8")
     try:
         resumo = processar_colecao(args.colecao)
