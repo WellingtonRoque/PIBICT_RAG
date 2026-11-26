@@ -5,6 +5,19 @@ orientado pelo Prof. Dr. Wellington Roque. Objetivo: desenvolver e avaliar uma
 arquitetura RAG que responda dúvidas de candidatos ao Vestibular usando apenas
 documentos oficiais, sempre indicando a fonte (documento e página).
 
+## Arquitetura v2: produto multi-cliente
+
+O sistema é um produto que atende vários clientes com o mesmo código. O Vestibular
+Fatec Indaiatuba é o **primeiro cliente** (e o caso estudado na pesquisa).
+
+- **Implantação:** hospedagem compartilhada por padrão (todos os clientes no mesmo
+  back-end e banco); hospedagem dedicada quando o cliente exigir, com o mesmo código.
+- **O que muda por cliente:** só os documentos (coleções) e a configuração do
+  assistente. Nada fixo do Vestibular no código (nomes, textos, regras ou caminhos
+  vêm do banco ou do YAML do assistente).
+- **Isolamento:** um cliente nunca vê dados de outro. Garantido por Row Level Security
+  e por filtro explícito de `cliente_id` em toda consulta (ver "Modelo de dados").
+
 ## Quem está programando
 
 O bolsista está aprendendo. Ele precisa entender e conseguir explicar todo o código,
@@ -33,10 +46,12 @@ mas nunca à custa do entendimento.
 |---|---|
 | Linguagem | Python 3.11+ |
 | Leitura de PDF | PyMuPDF |
-| Embeddings | BGE-M3 ou multilingual-E5 (via sentence-transformers), rodando em CPU — escolha final após teste da Etapa 3 |
-| Banco | PostgreSQL + pgvector no Supabase (sem Docker), índice HNSW; trechos e logs no mesmo banco |
-| LLM | API do Claude, modelo `claude-sonnet-5-5` (SDK `anthropic`) |
-| API | FastAPI, rota `POST /perguntar` |
+| Embeddings | BGE-M3 ou multilingual-E5 (via sentence-transformers), rodando em CPU — escolha final após teste da Etapa 3; sempre chamado por `gerar_embeddings()` |
+| Banco | PostgreSQL + pgvector no Supabase (sem Docker), índice HNSW, full-text search do Postgres (`tsvector`, configuração `portuguese`), Row Level Security; dados de todos os clientes, trechos e logs no mesmo banco |
+| Driver do banco | psycopg 3, no modo assíncrono dentro da API |
+| LLM | API do Claude, modelo `claude-sonnet-5-5` (SDK `anthropic`), com streaming |
+| API | FastAPI, rotas assíncronas (`async def`) e sem estado |
+| Configuração do assistente | Arquivos YAML (`assistentes/<slug>.yaml`), lidos com PyYAML (aprovado; entra no `requirements.txt` quando for usado) |
 | Interface | React (Vite) hospedado no Vercel desde o MVP; consome a API, com CORS liberado só para o domínio do Vercel |
 | Pipeline | Código próprio, sem LangChain ou LlamaIndex |
 
@@ -48,14 +63,18 @@ Ambiente de desenvolvimento: Windows, sem GPU dedicada. O frontend exige Node.js
 PIBICT_RAG/              (raiz do repositório)
 ├── data/raw/            PDFs oficiais (versionados) + FONTES.md (arquivo, link, data do download)
 ├── data/processed/      trechos extraídos (JSON, gerados pelo código; não versionados)
+├── assistentes/         um YAML por assistente (<slug>.yaml), ex.: vestibular-fatec-indaiatuba.yaml
+├── sql/esquema.sql      tabelas, índices e políticas de RLS
 ├── src/
-│   ├── ingestao.py      PDF → trechos com documento, página e posição
-│   ├── indexacao.py     trechos → embeddings → pgvector
-│   ├── recuperacao.py   pergunta → top-5 trechos (escrito pelo bolsista)
+│   ├── ingestao.py      PDF → trechos com documento, página e posição (por coleção)
+│   ├── embeddings.py    gerar_embeddings(): única porta de entrada para o modelo de embedding
+│   ├── indexacao.py     trechos → embeddings → pgvector; registra a ingestão
+│   ├── assistentes.py   lê assistentes/<slug>.yaml, valida e grava na tabela assistentes
+│   ├── recuperacao.py   pergunta → top-5 trechos, densa e híbrida (escrito pelo bolsista)
 │   ├── geracao.py       pergunta + trechos → resposta com fontes; modo sem recuperação (Cenário A)
-│   ├── logs.py          registro anonimizado das interações
+│   ├── logs.py          registro anonimizado das interações, com tokens e custo
 │   └── api.py           FastAPI, orquestra tudo
-├── frontend/            interface em React (Vite), publicada no Vercel
+├── frontend/            interface em React (Vite), publicada no Vercel; a mesma para todos os clientes
 ├── avaliacao/           perguntas com gabarito e scripts de métricas
 ├── tests/
 ├── docs/diario.md       diário de desenvolvimento
@@ -70,52 +89,149 @@ PIBICT_RAG/              (raiz do repositório)
 - O prompt instrui o LLM a responder só com base nos trechos, citar a fonte e dizer
   quando não encontrou a resposta.
 - Chunking do MVP: tamanho fixo, ~400 palavras, 15% de sobreposição.
-- Busca do MVP: apenas densa, top-5. Busca híbrida e reranking só após medição.
-- multilingual-E5 exige os prefixos `query: ` (pergunta) e `passage: ` (trechos).
+- Busca do MVP: top-5, híbrida (densa no pgvector + full-text search do Postgres,
+  combinadas por RRF — Reciprocal Rank Fusion), implementada na Etapa 4 e medida
+  com e sem a parte full-text. Reranking só após medição.
+- Toda busca é filtrada por `cliente_id` e `colecao_id`, com varredura iterativa do
+  índice HNSW ligada (`hnsw.iterative_scan`, pgvector ≥ 0.8), para o filtro não
+  deixar o resultado com menos de 5 trechos.
+- Embeddings só por `gerar_embeddings()` (em `src/embeddings.py`). O modelo usado fica
+  registrado em `colecoes.modelo_embedding`; a pergunta usa o modelo da coleção
+  consultada.
+- multilingual-E5 exige os prefixos `query: ` (pergunta) e `passage: ` (trechos);
+  esses prefixos ficam dentro de `gerar_embeddings()`.
 - O Cenário A (só LLM) e o Cenário B (RAG) usam o mesmo modelo e a mesma configuração.
 - Reprodutibilidade: os PDFs usados no experimento são versionados em `data/raw/` e
   registrados em `data/raw/FONTES.md`. Avise antes de versionar qualquer arquivo
   acima de 20 MB. Pastas geradas (como `data/processed/`) são criadas pelo código
   quando não existirem.
 
+## Modelo de dados (PostgreSQL/Supabase)
+
+```
+clientes     (id, nome, slug)
+colecoes     (id, cliente_id, nome, modelo_embedding)
+documentos   (id, colecao_id, titulo, arquivo, fonte_url, baixado_em, metadados JSONB)
+trechos      (id, documento_id, cliente_id, colecao_id, pagina, posicao, texto,
+              metadados JSONB, embedding vector, texto_busca tsvector)
+assistentes  (id, cliente_id, colecao_id, slug, config JSONB)
+sessoes      (id, assistente_id, criada_em)
+interacoes   (id, sessao_id, cliente_id, pergunta (mascarada), resposta, fontes, tempos,
+              tokens_entrada, tokens_saida, custo_estimado, util, categoria)
+ingestoes    (id, colecao_id, cliente_id, inicio, fim, documentos, trechos, tempo,
+              custo_estimado)
+```
+
+- `trechos` repete `cliente_id` e `colecao_id` (em vez de só herdar do documento) para
+  a busca filtrar sem JOIN.
+- `texto_busca` é gerado a partir de `texto` com `to_tsvector('portuguese', ...)`, com
+  índice GIN. `embedding` tem índice HNSW; a dimensão do vetor é fixada após a Etapa 3.
+- Row Level Security ligada em todas as tabelas com `cliente_id`. A API não usa um
+  papel do banco que ignore RLS, e o `cliente_id` vem do assistente consultado
+  (definido no servidor), nunca de um campo enviado pelo navegador.
+- As políticas e a estrutura ficam em `sql/esquema.sql`. Mudanças no esquema passam
+  pelo bolsista antes de rodar no Supabase.
+
+## Configuração do assistente
+
+Cada assistente tem um arquivo `assistentes/<slug>.yaml`, versionado. `src/assistentes.py`
+lê o arquivo e grava em `assistentes.config` (JSONB); em execução, a API lê do banco.
+Campos:
+
+- `nome`, `cores` (tema da interface), `boas_vindas`
+- `perguntas_sugeridas` (lista)
+- `pergunta_contexto` e `filtro`: pergunta feita ao usuário no início (ex.: curso de
+  interesse) e o campo de `metadados` dos trechos que a resposta filtra
+  (implementados na Etapa 7; até lá, o campo `contexto` da API é opcional e ignorado)
+- `sem_resposta`: mensagem quando os documentos não respondem, com o contato do cliente
+- `regras_prompt`: regras específicas do cliente, somadas às regras fixas do prompt
+  (responder só com os trechos, citar a fonte, dizer quando não encontrou)
+- `colecao`: coleção de documentos consultada
+
+## Custos
+
+Cada interação grava `tokens_entrada`, `tokens_saida` (lidos da resposta da API do
+Claude) e `custo_estimado`. Cada ingestão grava tempo e `custo_estimado`. Os preços por
+token ficam em um único lugar do código, com a data em que foram conferidos.
+
 ## Segurança e LGPD
 
 - Chaves, senhas e tokens apenas no `.env`, carregados por variáveis de ambiente.
 - `.env` sempre no `.gitignore`.
 - Logs sem nome, e-mail, CPF ou telefone: mascarar esses padrões na pergunta antes
-  de salvar. Sessão identificada só por ID anônimo.
+  de salvar. Sessão identificada só por ID anônimo (tabela `sessoes`).
+- **Teste de isolamento (obrigatório):** perguntas feitas como cliente A nunca devolvem
+  trechos do cliente B. Fica em `tests/` com dois clientes de teste e roda antes de
+  todo merge que mexa em banco, busca ou API.
 
 ## Campos de log (a validar com o projeto da Jasmine)
 
-`id`, `data_hora`, `sessao`, `pergunta` (mascarada), `resposta`, `fontes`,
-`pontuacoes_busca`, `tempo_recuperacao_ms`, `tempo_geracao_ms`, `modelo`,
-`versao_prompt`, `categoria` (preenchida na análise), `util` (opcional, sim/não).
+Os logs ficam na tabela `interacoes` (ver "Modelo de dados"). Além dos campos de lá,
+continuam previstos: `data_hora`, `pontuacoes_busca`, `tempo_recuperacao_ms`,
+`tempo_geracao_ms`, `modelo`, `versao_prompt`. `categoria` é preenchida na análise;
+`util` vem do 👍/👎 (opcional).
 
 ## Contrato da API
 
-```json
-// POST /perguntar — requisição
-{ "pergunta": "Quem tem direito à isenção da taxa?" }
+A API não guarda estado entre requisições: tudo o que ela precisa vem na requisição ou
+no banco.
 
-// resposta
+```json
+// GET /assistentes/{slug} — configuração pública para a interface
+// (nome, cores, boas-vindas, perguntas sugeridas, pergunta de contexto)
+
+// POST /perguntar — requisição
+{
+  "assistente": "vestibular-fatec-indaiatuba",
+  "sessao": "uuid (criada pela API se vier vazia)",
+  "pergunta": "Quem tem direito à isenção da taxa?",
+  "contexto": { "curso": "..." }
+}
+
+// resposta: em streaming (texto chega aos poucos); ao final, um bloco com
 {
   "resposta": "...",
-  "fontes": [{ "documento": "Edital Vestibular 1/2027", "pagina": 8, "trecho": "..." }],
+  "fontes": [{ "documento": "Edital Vestibular 1/2027", "pagina": 8,
+               "trecho": "...", "url": "https://...pdf#page=8" }],
+  "encontrou": true,
   "id_interacao": "uuid",
+  "sessao": "uuid",
   "tempo_ms": 2100
 }
+
+// POST /feedback
+{ "id_interacao": "uuid", "util": true }
 ```
 
-## Etapas do MVP (até 18/12/2026)
+## UX do MVP
+
+- Resposta em streaming.
+- Fonte clicável: abre o PDF oficial na página citada.
+- "Não sei" com contato: quando não encontra, mostra `sem_resposta` do assistente.
+- Perguntas sugeridas na tela inicial.
+- Feedback 👍/👎 em cada resposta (grava `util`).
+
+## Etapas e cronograma (sem pausa no recesso)
+
+| Período | Etapas | Entrega |
+|---|---|---|
+| até 18/12/2026 | 2 a 6 | back-end completo |
+| 19/12/2026 a ~08/01/2027 | 7 e 8 | interface com a UX do MVP e avaliação inicial |
+| a partir de ~08/01/2027 | — | piloto interno |
 
 1. Ambiente: Git, venv, projeto no Supabase com a extensão vector, `.env`, script de teste (banco + Claude)
-2. Ingestão e chunking
-3. Teste de embeddings (BGE-M3 × E5, 20 perguntas, Recall@5 e MRR)
-4. Indexação e busca
-5. Geração (incluindo modo sem recuperação)
-6. API e logs
-7. Interface React (Vite) no Vercel, com túnel para o back-end local nos testes
-8. Avaliação inicial (30 perguntas, Cenário A × B) e README
+2. Ingestão e chunking: trechos com documento, página, posição e metadados, organizados
+   por coleção (sem nada fixo do Vestibular)
+3. Teste de embeddings (BGE-M3 × E5, 20 perguntas, Recall@5 e MRR), já por
+   `gerar_embeddings()`
+4. Esquema do banco (`sql/esquema.sql`, com RLS), indexação com registro da ingestão,
+   busca densa e híbrida (RRF) medidas com e sem, e teste de isolamento
+5. Geração com streaming e regras do assistente (incluindo modo sem recuperação),
+   tokens e custo
+6. API assíncrona e sem estado, YAML do assistente carregado no banco, logs e feedback
+7. Interface React (Vite) no Vercel com a UX do MVP, com túnel para o back-end local nos
+   testes; inclui a pergunta de contexto com filtro (front-end e filtro na busca)
+8. Avaliação inicial (30 perguntas, Cenário A × B), teste de isolamento rodado e README
 
 Cada etapa só termina quando seu critério de pronto foi verificado e mostrado.
 
