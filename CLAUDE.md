@@ -89,7 +89,9 @@ PIBICT_RAG/              (raiz do repositório)
 - Todo trecho guarda documento de origem, página e posição.
 - O prompt instrui o LLM a responder só com base nos trechos, citar a fonte e dizer
   quando não encontrou a resposta.
-- Chunking do MVP: tamanho fixo, ~400 palavras, 15% de sobreposição.
+- Chunking do MVP: tamanho fixo, ~400 palavras, 15% de sobreposição. O trecho pode
+  atravessar a virada de página: guarda `pagina` (onde começa) e `pagina_fim` (onde
+  termina), e a citação mostra o intervalo (ex.: p. 8–9).
 - Busca do MVP: top-5, híbrida (densa no pgvector + full-text search do Postgres,
   combinadas por RRF — Reciprocal Rank Fusion), implementada na Etapa 4 e medida
   com e sem a parte full-text. Reranking só após medição.
@@ -116,7 +118,7 @@ PIBICT_RAG/              (raiz do repositório)
 clientes     (id, nome, slug)
 colecoes     (id, cliente_id, nome, modelo_embedding)
 documentos   (id, colecao_id, titulo, arquivo, fonte_url, baixado_em, metadados JSONB)
-trechos      (id, documento_id, cliente_id, colecao_id, pagina, posicao, texto,
+trechos      (id, documento_id, cliente_id, colecao_id, pagina, pagina_fim, posicao, texto,
               metadados JSONB, embedding vector, texto_busca tsvector)
 assistentes  (id, cliente_id, slug, config JSONB)
 assistente_colecoes (assistente_id, colecao_id, cliente_id)
@@ -202,7 +204,7 @@ no banco.
 // resposta: em streaming (texto chega aos poucos); ao final, um bloco com
 {
   "resposta": "...",
-  "fontes": [{ "documento": "Edital Vestibular 1/2027", "pagina": 8,
+  "fontes": [{ "documento": "Edital Vestibular 1/2027", "pagina": 8, "pagina_fim": 9,
                "trecho": "...", "url": "https://...pdf#page=8" }],
   "encontrou": true,
   "id_interacao": "uuid",
