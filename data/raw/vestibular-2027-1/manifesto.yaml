@@ -1,0 +1,57 @@
+# Manifesto da coleção: lista cada PDF desta pasta e seus dados.
+# É a fonte usada pelo código (src/ingestao.py). Todo PDF da pasta precisa estar aqui,
+# e todo arquivo listado aqui precisa existir na pasta.
+#
+# Campos de cada documento:
+#   arquivo     nome do PDF nesta pasta
+#   titulo      título do documento (tirado da primeira página)
+#   fonte_url   link oficial de onde o PDF foi baixado
+#   baixado_em  data do download (AAAA-MM-DD)
+#   metadados   dados livres; nas portarias: tipo, numero, data e, se for alteração
+#               ou retificação, altera (número da portaria alterada)
+
+colecao: vestibular-2027-1
+documentos:
+  # A capa (página 1) é só imagem; o título vem do conteúdo do manual.
+  - arquivo: manual-candidato-2027-1.pdf
+    titulo: Manual do Candidato - Vestibular Fatec 1º semestre 2027
+    fonte_url: https://assets.fatvestibulares.com.br/vestibularfatec/documentos/1SEM-27/ManualCandidato.pdf
+    baixado_em: 2026-11-26
+    metadados: {tipo: manual, edicao: 2027-1}
+
+  - arquivo: portaria-5304-2026-normas.pdf
+    titulo: Portaria CEETEPS-Presidência nº 5304, de 25 de agosto de 2026 - Normas operacionais do Processo Seletivo Vestibular do 1º semestre de 2027
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5304/2026", data: 2026-08-25}
+
+  - arquivo: portaria-5284-2026-isencao.pdf
+    titulo: Portaria CEETEPS-Presidência nº 5284, de 17 de agosto de 2026 - Isenção ou redução da taxa de inscrição do Vestibular do 1º semestre de 2027
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5284/2026", data: 2026-08-17}
+
+  # A retificação não tem número próprio: corrige a 5284 e foi publicada no DOE de 24/08/2026.
+  - arquivo: portaria-5284-2026-retificacao.pdf
+    titulo: Retificação da Portaria CEETEPS-Presidência nº 5284, de 17 de agosto de 2026 (DOE de 24 de agosto de 2026)
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5284/2026", data: 2026-08-24, altera: "5284/2026"}
+
+  - arquivo: portaria-5541-2026-prorrogacao-inscricoes.pdf
+    titulo: Portaria CEETEPS-Presidência nº 5541, de 28 de outubro de 2026 - Prorroga o período de inscrições do Vestibular do 1º semestre de 2027
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5541/2026", data: 2026-10-28, altera: "5304/2026"}
+
+  - arquivo: portaria-5542-2026-pcd-atendimento.pdf
+    titulo: Portaria CEETEPS-Presidência nº 5542, de 28 de outubro de 2026 - Reabre o prazo de atendimento diferenciado e reserva de vagas para pessoas com deficiência no Vestibular do 1º semestre de 2027
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5542/2026", data: 2026-10-28, altera: "5304/2026"}
+
+  - arquivo: portaria-5579-2026-prorrogacao-taxa.pdf
+    titulo: Portaria CEETEPS-Presidência nº 5579, de 13 de novembro de 2026 - Prorroga o prazo de pagamento da taxa de inscrição do Vestibular do 1º semestre de 2027
+    fonte_url:
+    baixado_em:
+    metadados: {tipo: portaria, numero: "5579/2026", data: 2026-11-13, altera: "5304/2026"}
