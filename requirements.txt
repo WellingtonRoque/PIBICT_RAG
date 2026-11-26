@@ -9,3 +9,9 @@ psycopg[binary]==3.3.9
 
 # Lê o arquivo .env e coloca as chaves em variáveis de ambiente
 python-dotenv==1.2.4
+
+# Lê o texto dos PDFs, página por página (Etapa 2)
+pymupdf==2.2
+
+# Lê arquivos YAML: manifesto das coleções e configuração dos assistentes
+PyYAML==6.0.4

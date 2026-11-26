@@ -1,0 +1,6 @@
+# Dependências só para desenvolvimento (testes). O sistema em produção não precisa delas.
+# Instalar com o venv ativo:  pip install -r requirements-dev.txt
+-r requirements.txt
+
+# Executa os testes da pasta tests/ (comando: python -m pytest)
+pytest==9.2.0

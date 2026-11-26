@@ -9,12 +9,20 @@ A seção "Pendências" fica no topo e é atualizada sempre que algo é resolvid
       início de dezembro de 2026). Colocar a chave no `.env` e rodar
       `python tests/teste_ambiente.py`: o Claude deve passar de `[PULADO]` para `[OK]`.
       Até lá, o critério de pronto da Etapa 1 ("banco + Claude") está parcial.
-- [ ] **Etapa 2:** `src/ingestao.py` deve criar `data/processed/` se a pasta não existir
-      (ela não é versionada).
+- [x] **Etapa 2:** `src/ingestao.py` deve criar `data/processed/` se a pasta não existir
+      (ela não é versionada). Feito em 26/11/2026 (`mkdir(parents=True, exist_ok=True)`).
 - [ ] **Antes da Etapa 8:** gerar `requirements-lock.txt` com `pip freeze`, para fixar também
       as dependências indiretas.
 - [ ] **PC de casa:** o histórico do Git foi reescrito em 25/11/2026. Não usar `git pull` no
       clone antigo; clonar o repositório de novo e copiar o `.env`.
+
+## Ideias futuras
+
+- **Padrões de remoção configuráveis por coleção** (26/11/2026): hoje a ingestão só remove
+  linhas que se repetem em mais da metade das páginas de um documento, e por isso os rodapés
+  do Diário Oficial ficam nas portarias de 1 página. Uma opção é listar no `manifesto.yaml` de
+  cada coleção padrões de linhas a remover (ex.: a assinatura digital do DOE), mantendo o
+  código livre de regras específicas de um cliente.
 
 ## Etapa 1 — Ambiente (18/11 a 25/11/2026)
 

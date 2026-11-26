@@ -74,7 +74,7 @@ O script termina com código 1 se algum item falhar. "PULADO" não conta como fa
 ## Estrutura
 
 ```
-data/raw/         PDFs oficiais (versionados) + FONTES.md (origem e data de cada arquivo)
+data/raw/<colecao>/  PDFs oficiais (versionados) + manifesto.yaml (título, origem, data e metadados de cada arquivo)
 data/processed/   trechos extraídos, gerados pelo código (não versionados)
 src/              código do pipeline (ingestão, indexação, recuperação, geração, API)
 avaliacao/        perguntas com gabarito e scripts de métricas
