@@ -11,10 +11,16 @@ A seção "Pendências" fica no topo e é atualizada sempre que algo é resolvid
       Até lá, o critério de pronto da Etapa 1 ("banco + Claude") está parcial.
 - [x] **Etapa 2:** `src/ingestao.py` deve criar `data/processed/` se a pasta não existir
       (ela não é versionada). Feito em 26/11/2026 (`mkdir(parents=True, exist_ok=True)`).
+- [ ] **Etapa 3 (próximo passo):** escrever as perguntas p02 a p20 em
+      `avaliacao/perguntas_embeddings.yaml` (a p01 já está pronta), conferindo a página no PDF.
+      Pergunta sem resposta nos documentos: deixar `documento_esperado` vazio. Depois, rodar
+      `.\.venv\Scripts\python -m avaliacao.teste_embeddings` (~10 min em CPU), commitar o JSON
+      de `avaliacao/resultados/` e escolher o modelo.
 - [ ] **Antes da Etapa 8:** gerar `requirements-lock.txt` com `pip freeze`, para fixar também
       as dependências indiretas.
-- [ ] **PC de casa:** o histórico do Git foi reescrito em 25/11/2026. Não usar `git pull` no
-      clone antigo; clonar o repositório de novo e copiar o `.env`.
+- [x] **PC de casa:** o histórico do Git foi reescrito em 25/11/2026. Não usar `git pull` no
+      clone antigo; clonar o repositório de novo e copiar o `.env`. Feito em 26/11/2026
+      (clone novo, com venv em Python 3.12).
 
 ## Ideias futuras
 
@@ -53,3 +59,21 @@ A seção "Pendências" fica no topo e é atualizada sempre que algo é resolvid
 - **O que deu errado:** os PDFs vieram com extensão dupla (`.pdf.pdf`); a primeira versão da
   limpeza apagava o marcador "•" de listas; nas portarias de 1 página o rodapé do Diário
   Oficial continua (ver "Ideias futuras").
+
+## Etapa 3 — Teste de embeddings (em andamento, desde 26/11/2026)
+
+- **Feito:** `src/embeddings.py` (`gerar_embeddings()`, com BGE-M3 e multilingual-E5-large),
+  `avaliacao/metricas.py` (Recall@5 e MRR@5), `avaliacao/teste_embeddings.py` (script da
+  comparação) e o modelo `avaliacao/perguntas_embeddings.yaml` com a p01. 52 testes passando.
+- **Como funciona:** os vetores saem normalizados, então a similaridade de cosseno é o produto
+  escalar; os prefixos `query: `/`passage: ` do E5 ficam dentro de `gerar_embeddings()`. O script
+  indexa os 86 trechos em memória (numpy, sem banco), busca cada pergunta, calcula as métricas só
+  com as perguntas que têm resposta e mede separadamente carga, indexação e tempo por pergunta.
+- **Resultado parcial (só a p01, não conclusivo):** BGE-M3 indexou em 370 s e respondeu em
+  205 ms por pergunta; E5 em 250 s e 222 ms. Com trechos de 400 palavras, o E5 corta 80 de 86
+  trechos (93%), porque lê no máximo 512 tokens; decidimos manter as 400 palavras e registrar o corte.
+- **Observações para acompanhar:** o BGE-M3 errou a p01 devolvendo o prazo original da Portaria
+  5304, em vez da prorrogação da 5579 (questão da regra vigente, a tratar na Etapa 5); as pontuações
+  do E5 ficam muito próximas (0,83–0,85), inclusive na pergunta sem resposta, o que pode dificultar
+  o "não sei" por limiar.
+- **O que deu errado:** nada bloqueante. O download dos dois modelos (~4,4 GB) levou ~7 min.
