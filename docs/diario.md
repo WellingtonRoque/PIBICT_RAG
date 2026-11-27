@@ -36,3 +36,20 @@ A seção "Pendências" fica no topo e é atualizada sempre que algo é resolvid
 - **O que deu errado:** a chave da API do Claude não chegou a tempo, e a Etapa 1 foi fechada
   com essa pendência. O histórico do Git precisou ser reescrito para remover uma linha de
   coautoria, o que exigiu refazer clones antigos.
+
+## Etapa 2 — Ingestão e chunking (26/11/2026)
+
+- **Feito:** manifesto por coleção (`data/raw/vestibular-2027-1/manifesto.yaml`, que substitui o
+  `FONTES.md`), `src/ingestao.py` e 21 testes com pytest (`tests/test_ingestao.py`).
+- **Como funciona:** o manifesto é conferido contra os PDFs da pasta (falha se faltar ou sobrar
+  arquivo); o texto é extraído por página com PyMuPDF; linhas repetidas em mais da metade das
+  páginas (cabeçalhos e rodapés) são removidas; uma janela de 400 palavras avança 340 por vez
+  (15% de sobreposição) e cada trecho guarda `pagina` e `pagina_fim`.
+- **Resultado:** 7 documentos, 95 páginas, 86 trechos em `data/processed/vestibular-2027-1/`.
+  As páginas 1 e 16 do manual são só imagem (capa e contracapa).
+- **Decisões:** arquitetura v2 multi-cliente registrada no `CLAUDE.md` (assistente com várias
+  coleções, RLS, busca híbrida na Etapa 4); trecho pode atravessar páginas (`pagina_fim`);
+  pytest em `requirements-dev.txt`.
+- **O que deu errado:** os PDFs vieram com extensão dupla (`.pdf.pdf`); a primeira versão da
+  limpeza apagava o marcador "•" de listas; nas portarias de 1 página o rodapé do Diário
+  Oficial continua (ver "Ideias futuras").
