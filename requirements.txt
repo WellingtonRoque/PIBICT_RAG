@@ -15,3 +15,6 @@ pymupdf==2.2
 
 # Lê arquivos YAML: manifesto das coleções e configuração dos assistentes
 PyYAML==6.0.4
+
+# Gera os embeddings (BGE-M3 e multilingual-E5) em CPU; instala junto o torch (Etapa 3)
+sentence-transformers==6.3.0
